@@ -1,0 +1,609 @@
+#define AMOUNT_OF_PEOPLE 59
+#define TOTAL_FRAMES 120
+#define RS_SCALE (1.0 / (1.0 + RAND_MAX))
+//Using SDL, SDL OpenGL, standard IO, and, strings
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+#include <OpenGL/glu.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <iostream>
+#include "positions.h"
+#include "relationshipDB.h"
+#include "lodepng.h"
+
+GLuint listId;
+GLUquadricObj *sphere;
+int screenWidth;
+int screenHeight;
+bool initanimate = true;
+bool highlight = false;
+float cameraAngleX;
+float cameraAngleY;
+float cameraDistance;
+int ii = 0;
+int highlighta, highlightb;
+bool imageload = false;
+coordinates spheres[AMOUNT_OF_PEOPLE];
+coordinates unitDistanceChange[AMOUNT_OF_PEOPLE];
+coordinates finalPositions[AMOUNT_OF_PEOPLE];
+
+
+const int   SCREEN_WIDTH    = 800;
+const int   SCREEN_HEIGHT   = 600;
+const float CAMERA_DISTANCE = -100.0f;
+const int SCREEN_FPS = 60;
+const int SCREEN_TICK_PER_FRAME = 1000 / SCREEN_FPS;
+
+//Timer
+class LTimer
+{
+public:
+    //Initializes variables
+    LTimer();
+    
+    //The various clock actions
+    void start();
+    void stop();
+    void pause();
+    void unpause();
+    
+    //Gets the timer's time
+    Uint32 getTicks();
+    
+    //Checks the status of the timer
+    bool isStarted();
+    bool isPaused();
+    
+private:
+    //The clock time when the timer started
+    Uint32 mStartTicks;
+    
+    //The ticks stored when the timer was paused
+    Uint32 mPausedTicks;
+    
+    //The timer status
+    bool mPaused;
+    bool mStarted;
+};
+
+//Timer Functions
+LTimer::LTimer()
+{
+    //Initialize the variables
+    mStartTicks = 0;
+    mPausedTicks = 0;
+    
+    mPaused = false;
+    mStarted = false;
+}
+
+void LTimer::start()
+{
+    //Start the timer
+    mStarted = true;
+    
+    //Unpause the timer
+    mPaused = false;
+    
+    //Get the current clock time
+    mStartTicks = SDL_GetTicks();
+	mPausedTicks = 0;
+}
+
+void LTimer::stop()
+{
+    //Stop the timer
+    mStarted = false;
+    
+    //Unpause the timer
+    mPaused = false;
+    
+	//Clear tick variables
+	mStartTicks = 0;
+	mPausedTicks = 0;
+}
+
+void LTimer::pause()
+{
+    //If the timer is running and isn't already paused
+    if( mStarted && !mPaused )
+    {
+        //Pause the timer
+        mPaused = true;
+        
+        //Calculate the paused ticks
+        mPausedTicks = SDL_GetTicks() - mStartTicks;
+		mStartTicks = 0;
+    }
+}
+
+void LTimer::unpause()
+{
+    //If the timer is running and paused
+    if( mStarted && mPaused )
+    {
+        //Unpause the timer
+        mPaused = false;
+        
+        //Reset the starting ticks
+        mStartTicks = SDL_GetTicks() - mPausedTicks;
+        
+        //Reset the paused ticks
+        mPausedTicks = 0;
+    }
+}
+
+Uint32 LTimer::getTicks()
+{
+	//The actual timer time
+	Uint32 time = 0;
+    
+    //If the timer is running
+    if( mStarted )
+    {
+        //If the timer is paused
+        if( mPaused )
+        {
+            //Return the number of ticks when the timer was paused
+            time = mPausedTicks;
+        }
+        else
+        {
+            //Return the current time minus the start time
+            time = SDL_GetTicks() - mStartTicks;
+        }
+    }
+    
+    return time;
+}
+
+bool LTimer::isStarted()
+{
+	//Timer is running and paused or unpaused
+    return mStarted;
+}
+
+bool LTimer::isPaused()
+{
+	//Timer is running and paused
+    return mPaused && mStarted;
+}
+
+
+//Starts up SDL, creates window, and initializes OpenGL
+bool init();
+
+//Initializes matrices and clear color
+bool initGL();
+
+//Input handler
+void handleKeys( unsigned char key, int x, int y );
+
+//Per frame update
+void update();
+
+//Renders quad to the screen
+void render();
+
+//Frees media and shuts down SDL
+void close();
+
+//The window we'll be rendering to
+SDL_Window* gWindow = NULL;
+
+//OpenGL context
+SDL_GLContext gContext;
+
+
+//My functions
+void displayImage(unsigned int width, unsigned int height, int LeftBottomX, int LeftBottomY, const char* filename, bool loaded){
+    std::vector<unsigned char> image;
+    unsigned int ImageWidth, ImageHeight;
+    system("pwd");
+    if(loaded == false){
+        int error = lodepng::decode(image, ImageWidth, ImageHeight, filename);
+        if(error != 0)
+        {
+            std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+        }
+    }
+    else{
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, ImageWidth, ImageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
+        glBegin(GL_QUADS);
+        glTexCoord2d( 0, 0); glVertex2f( LeftBottomX , LeftBottomY );
+        glTexCoord2d( 1, 0); glVertex2f((LeftBottomX + width), LeftBottomY );
+        glTexCoord2d( 1, 1); glVertex2f((LeftBottomX + width), (LeftBottomY + height));
+        glTexCoord2d( 0, 1); glVertex2f( LeftBottomX , (LeftBottomY + height));
+        glEnd();
+    }
+
+    std::vector<unsigned char>().swap(image);
+}
+
+void toOrtho(int type, int position){
+    //Changes the "drawbox" to the one asked for:
+    //type = 1, position = 1: data box, left
+    //type = 1, position = 2: data box, right
+    //type = 2, position = 1: scroll box, top
+    //type = 1, position = 1: scroll box, bottom
+    glDisable(GL_DEPTH_TEST);
+    if(type == 1){
+        if(position == 1){
+            glViewport(0, 0, (screenWidth / 6), (screenHeight / 10 * 9));
+            glScissor(0, 0, (screenWidth / 6), (screenHeight / 10 * 9));
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D(0, (screenWidth / 6), 0, (screenHeight / 10 * 9));
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+        }
+        if(position == 2){
+            glViewport((screenWidth / 6 * 5), (screenHeight / 10), (screenWidth / 6), (screenHeight / 10 * 9));
+            glScissor((screenWidth / 6 * 5), (screenHeight / 10), (screenWidth / 6), (screenHeight / 10 * 9));
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D((screenWidth / 6 * 5), screenWidth, (screenHeight / 10), screenHeight);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+        }
+    }
+    if(type == 2){
+        if(position == 1){
+            glViewport(0, (screenHeight / 10 * 9), (screenWidth / 6 * 5), (screenHeight / 10));
+            glScissor(0, (screenHeight / 10 * 9), (screenWidth / 6 * 5), (screenHeight / 10));
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D(0, (screenWidth / 6 * 5), (screenHeight / 10 * 9), screenHeight);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+        }
+        if(position == 2){
+            glViewport((screenWidth / 6), 0, (screenWidth / 6 * 5), (screenHeight / 10));
+            glScissor((screenWidth / 6), 0, (screenWidth / 6 * 5), (screenHeight / 10));
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluOrtho2D((screenWidth / 6), screenWidth, 0, (screenHeight / 10));
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+        }
+    }
+    
+}
+
+
+void toPerspective(){
+    glViewport((screenWidth / 6), (screenHeight / 10), (GLsizei)(screenWidth - (screenWidth / 3)), (GLsizei)(screenHeight - (screenHeight / 5)));
+    glScissor((screenWidth / 6), (screenHeight / 10), (GLsizei)(screenWidth - (screenWidth / 3)), (GLsizei)(screenHeight - (screenHeight / 5)));
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(60.0f, (float)(screenWidth)/screenHeight, 1.0f, 1000.0f); // FOV, AspectRatio, NearClip, FarClip
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glEnable(GL_DEPTH_TEST);
+}
+
+void drawSpheres(){
+    glColor3f(1.0, 1.0, 1.0);
+	for (int i = 0; i < AMOUNT_OF_PEOPLE; i++){
+		glPushMatrix();
+		glTranslatef(spheres[i].x, spheres[i].y, spheres[i].z);
+		gluSphere(sphere, 1.0, 3, 3);
+		glPopMatrix();
+	}
+}
+void drawLines(){
+    for(int i = 0;i < AMOUNT_OF_PEOPLE; i++){
+        for(a = 1; a < AMOUNT_OF_PEOPLE - i; a++){
+            changePersonColor(i, (i + a));
+            glBegin(GL_LINES);
+            glVertex3f(spheres[i].x, spheres[i].y, spheres[i].z);
+            glVertex3f(spheres[(i + a)].x, spheres[(i + a)].y, spheres[(i + a)].z);
+            glEnd();
+        }
+    }
+}
+void drawinfo(){
+    toOrtho(1,1);
+    std::vector<unsigned char> image;
+    unsigned int ImageWidth, ImageHeight;
+    if(imageload == false){
+        int error = lodepng::decode(image, ImageWidth, ImageHeight, "a.png");
+        if(error != 0)
+        {
+            std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+        }
+    }
+    else{
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, ImageWidth, ImageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
+        glBegin(GL_QUADS);
+        glTexCoord2d( 0, 0); glVertex2f( 0 , (screenHeight / 10) );
+        glTexCoord2d( 1, 0); glVertex2f((0 + (screenWidth / 6)), (screenHeight / 10) );
+        glTexCoord2d( 1, 1); glVertex2f((0 + (screenWidth / 6)), ((screenHeight / 10) + (screenHeight * 0.9)));
+        glTexCoord2d( 0, 1); glVertex2f( 0 , ((screenHeight / 10) + (screenHeight * 0.9)));
+        glEnd();
+    }
+    
+    std::vector<unsigned char>().swap(image);
+    GLenum err = glGetError();
+    printf( "%s\n", gluErrorString( err ) );
+    imageload = true;
+    toPerspective();
+}
+
+void animateLines(){
+    initAnimations(spheres[ii].x, spheres[ii].y, spheres[ii].z, &spheres[0], &finalPositions[0], ii);
+	for (a = 0; a < AMOUNT_OF_PEOPLE; a++){
+		changePersonColor(ii, a);
+		glBegin(GL_LINES);
+		glVertex3f(spheres[ii].x, spheres[ii].y, spheres[ii].z);
+		glVertex3f(finalPositions[a].x, finalPositions[a].y, finalPositions[a].z);
+		glEnd();
+		if (a < ii){
+			for (int i = 1; i < AMOUNT_OF_PEOPLE - a; i++){
+				changePersonColor(a, (a + i));
+				glBegin(GL_LINES);
+				glVertex3f(spheres[a].x, spheres[a].y, spheres[a].z);
+				glVertex3f(spheres[a + i].x, spheres[a + i].y, spheres[a + i].z);
+				glEnd();
+			}
+		}
+	}
+	if (ii >= (AMOUNT_OF_PEOPLE - 1)){
+		initanimate = false;
+		animate = true;
+	}
+	if (count == 30){
+		ii++;
+		count = 0;
+	}
+	else(count++);
+    
+}
+void initLights(){
+    GLfloat lightKa[] = {.5f, .5f, .5f, 1.0f};  // ambient light
+    GLfloat lightKd[] = {.7f, .7f, .7f, 1.0f};  // diffuse light
+    GLfloat lightKs[] = {1.0f, 1.0f, 1.0f, 1.0f};  // specular light
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightKa);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightKd);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightKs);
+    
+    float lightPos[4] = {0, 0, 0, 1}; // positional light
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+    
+    glEnable(GL_LIGHT0);
+}
+
+//SDL functions
+bool init()
+{
+	//Initialization flag
+	bool success = true;
+    
+	//Initialize SDL
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+	{
+		printf( "SDL could not initialize! SDL Error: %s\n", SDL_GetError() );
+		success = false;
+	}
+	else
+	{
+		//Use OpenGL 2.1
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+        
+		//Create window
+		gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
+		if( gWindow == NULL )
+		{
+			printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
+			success = false;
+		}
+		else
+		{
+			//Create context
+			gContext = SDL_GL_CreateContext( gWindow );
+			if( gContext == NULL )
+			{
+				printf( "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError() );
+				success = false;
+			}
+			else
+			{
+				//Use Vsync
+				if( SDL_GL_SetSwapInterval( 1 ) < 0 )
+				{
+					printf( "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError() );
+				}
+                
+				//Initialize OpenGL
+				if( !initGL() )
+				{
+					printf( "Unable to initialize OpenGL!\n" );
+					success = false;
+				}
+			}
+		}
+	}
+    
+    //Other inits
+    unsigned int iseed = (unsigned int)time(NULL);
+    srand(iseed);
+    
+    create_coords(&spheres[0], AMOUNT_OF_PEOPLE);
+    create_coords(&finalPositions[0], AMOUNT_OF_PEOPLE);
+    getDistance(&spheres[0], &finalPositions[0], &unitDistanceChange[0], AMOUNT_OF_PEOPLE);
+    
+    screenWidth = SCREEN_WIDTH;
+    screenHeight = SCREEN_HEIGHT;
+    
+    cameraAngleX = cameraAngleY = 0.0f;
+    cameraDistance = CAMERA_DISTANCE;
+    
+	return success;
+}
+
+bool initGL()
+{
+    glShadeModel(GL_FLAT);                    // shading mathod: GL_SMOOTH or GL_FLAT
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);      // 4-byte pixel alignment
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_SCISSOR_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glDisable(GL_ALPHA_TEST);
+    
+    // track material ambient and diffuse from surface color, call it before glEnable(GL_COLOR_MATERIAL)
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
+    
+    sphere = gluNewQuadric();
+    gluQuadricDrawStyle(sphere, GLU_FILL);
+    gluQuadricNormals(sphere, GLU_FLAT);
+    gluQuadricOrientation(sphere, GLU_OUTSIDE);
+    gluQuadricTexture(sphere, GL_FALSE);
+    
+    listId = glGenLists(1);
+    glNewList(listId, GL_COMPILE);
+    gluSphere(sphere, 1, 4, 4);
+    glEndList();
+    
+    glClearColor(0, 0, 0, 0);
+    glClearStencil(0);
+    glClearDepth(10.0f);
+    glDepthFunc(GL_LEQUAL);
+    initLights();
+    return true;
+}
+
+void handleKeys( unsigned char key, int x, int y )
+{
+	//Toggle quad
+	if( key == 'q' )
+	{
+		
+	}
+}
+
+void update()
+{
+	if (initanimate == true){
+		cameraDistance += 0.15f;
+	}
+	else{
+		if(animate == false && (highlight == true && count == 0)){
+			create_coords_highlight(&finalPositions[0], AMOUNT_OF_PEOPLE, highlighta, highlightb);
+			getDistance(&spheres[0], &finalPositions[0], &unitDistanceChange[0], AMOUNT_OF_PEOPLE);
+			animate = true;
+			count = 1;
+		}
+		else if (irand(1000) == 1) {
+			animate = true;
+		}
+		if (animate == true){
+			changeCoordinates(&spheres[0], &unitDistanceChange[0], &finalPositions[0]);
+		}
+	}
+	cameraAngleY += (float)0.15;
+}
+
+void render()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glPushMatrix();
+    glTranslatef(0, 0, -cameraDistance);
+    //glRotatef(cameraAngleX, 1, 0, 0);   // pitch
+    glRotatef(cameraAngleY, 0, 1, 0);   // heading
+    if(initanimate == true){
+        animateLines();
+    }
+    else{
+        drawLines();
+    }
+    drawSpheres();
+    glPopMatrix();
+    drawinfo();
+}
+
+void close()
+{
+	//Destroy window
+	SDL_DestroyWindow( gWindow );
+	gWindow = NULL;
+    
+	//Quit SDL subsystems
+	SDL_Quit();
+}
+
+int main( int argc, char* args[] )
+{
+	//Start up SDL and create window
+	if( !init() )
+	{
+		printf( "Failed to initialize!\n" );
+	}
+	else
+	{
+		//Main loop flag
+		bool quit = false;
+        
+		//Event handler
+		SDL_Event e;
+		
+        //FPS capping timer
+        LTimer capTimer;
+		//Enable text input
+		SDL_StartTextInput();
+        
+		//While application is running
+		while( !quit )
+		{
+			//Start Cap Timer
+            capTimer.start();
+            //Handle events on queue
+			while( SDL_PollEvent( &e ) != 0 )
+			{
+				//User requests quit
+				if( e.type == SDL_QUIT )
+				{
+					quit = true;
+				}
+				//Handle keypress with current mouse position
+				else if( e.type == SDL_TEXTINPUT )
+				{
+					int x = 0, y = 0;
+					SDL_GetMouseState( &x, &y );
+					handleKeys( e.text.text[ 0 ], x, y );
+				}
+			}
+            
+			//Render quad
+			render();
+			update();
+			//Update screen
+			SDL_GL_SwapWindow( gWindow );
+            int frameTicks = capTimer.getTicks();
+            if( frameTicks < SCREEN_TICK_PER_FRAME )
+            {
+                //Wait remaining time
+                SDL_Delay( SCREEN_TICK_PER_FRAME - frameTicks );
+            }
+		}
+		
+		//Disable text input
+		SDL_StopTextInput();
+	}
+    
+	//Free resources and close SDL
+	close();
+    
+	return 0;
+}

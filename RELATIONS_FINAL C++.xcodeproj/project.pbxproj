@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BD2030DE19552AC7000A47E1 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD2030DD19552AC7000A47E1 /* main.cpp */; };
 		BD2030E019552AC7000A47E1 /* RELATIONS_FINAL_C__.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = BD2030DF19552AC7000A47E1 /* RELATIONS_FINAL_C__.1 */; };
+		BD2030E719552AF9000A47E1 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BD2030E619552AF9000A47E1 /* OpenGL.framework */; };
+		BD3CC7051967D10100AF3E4E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD3CC7041967D10100AF3E4E /* main.cpp */; };
+		BD6BD285196BB3170071A3DF /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BD6BD284196BB3170071A3DF /* lodepng.cpp */; };
+		BDF1314B1967D15200524925 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDF1314A1967D15200524925 /* Cocoa.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,8 +29,15 @@
 
 /* Begin PBXFileReference section */
 		BD2030DA19552AC7000A47E1 /* RELATIONS_FINAL C++ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "RELATIONS_FINAL C++"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BD2030DD19552AC7000A47E1 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		BD2030DF19552AC7000A47E1 /* RELATIONS_FINAL_C__.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = RELATIONS_FINAL_C__.1; sourceTree = "<group>"; };
+		BD2030E619552AF9000A47E1 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		BD3CC7021967D10100AF3E4E /* relationshipDB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = relationshipDB.h; sourceTree = "<group>"; };
+		BD3CC7031967D10100AF3E4E /* positions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = positions.h; sourceTree = "<group>"; };
+		BD3CC7041967D10100AF3E4E /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		BD601C7E196AE6A50050BBC8 /* main2 */ = {isa = PBXFileReference; lastKnownFileType = text; path = main2; sourceTree = "<group>"; };
+		BD6BD283196BB3170071A3DF /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
+		BD6BD284196BB3170071A3DF /* lodepng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lodepng.cpp; sourceTree = "<group>"; };
+		BDF1314A1967D15200524925 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -35,6 +45,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BDF1314B1967D15200524925 /* Cocoa.framework in Frameworks */,
+				BD2030E719552AF9000A47E1 /* OpenGL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -44,6 +56,8 @@
 		BD2030D119552AC7000A47E1 = {
 			isa = PBXGroup;
 			children = (
+				BDF1314A1967D15200524925 /* Cocoa.framework */,
+				BD2030E619552AF9000A47E1 /* OpenGL.framework */,
 				BD2030DC19552AC7000A47E1 /* RELATIONS_FINAL C++ */,
 				BD2030DB19552AC7000A47E1 /* Products */,
 			);
@@ -60,7 +74,12 @@
 		BD2030DC19552AC7000A47E1 /* RELATIONS_FINAL C++ */ = {
 			isa = PBXGroup;
 			children = (
-				BD2030DD19552AC7000A47E1 /* main.cpp */,
+				BD6BD283196BB3170071A3DF /* lodepng.h */,
+				BD6BD284196BB3170071A3DF /* lodepng.cpp */,
+				BD3CC7021967D10100AF3E4E /* relationshipDB.h */,
+				BD3CC7031967D10100AF3E4E /* positions.h */,
+				BD3CC7041967D10100AF3E4E /* main.cpp */,
+				BD601C7E196AE6A50050BBC8 /* main2 */,
 				BD2030DF19552AC7000A47E1 /* RELATIONS_FINAL_C__.1 */,
 			);
 			path = "RELATIONS_FINAL C++";
@@ -117,7 +136,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BD2030DE19552AC7000A47E1 /* main.cpp in Sources */,
+				BD3CC7051967D10100AF3E4E /* main.cpp in Sources */,
+				BD6BD285196BB3170071A3DF /* lodepng.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -156,9 +176,9 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
+				SDKROOT = macosx10.8;
 			};
 			name = Debug;
 		};
@@ -189,14 +209,18 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.9;
-				SDKROOT = macosx;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				SDKROOT = macosx10.8;
 			};
 			name = Release;
 		};
 		BD2030E419552AC7000A47E1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LOCAL_LIBRARY_DIR)/Frameworks",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -204,6 +228,10 @@
 		BD2030E519552AC7000A47E1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LOCAL_LIBRARY_DIR)/Frameworks",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -227,6 +255,7 @@
 				BD2030E519552AC7000A47E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
