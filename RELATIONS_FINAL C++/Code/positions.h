@@ -118,24 +118,36 @@ void subtle_coords_change(coordinates *base, coordinates *final, int size){
     }
 }
 void edit_coords_highlight(coordinates *fill, int size, int highlighta, int highlightb){
-    for(int i = 0; i < size; i++){
-        if(i != highlighta && i != highlightb){
-        if(fill[i].x <= 30 && fill[i].x >= -30 && fill[i].y <= 30 && fill[i].y >= -30){
-            if(rand() % 2 == 0){
-                fill[i].x = 40 + irand(10);
-            }
-            else{
-                fill[i].x = -40 - irand(10);
-            }
-            if(rand() % 2 == 0){
-                fill[i].y = 40 + irand(10);
-            }
-            else{
-                fill[i].y = -40 - irand(10);
-            }
-        }
-        }
-    }
+	for (int i = 0; i < size; i++){
+		if (rand() % 2 == 0){
+			fill[i].x = -(float)irand(100);
+		}
+		else
+		{
+			fill[i].x = (float)irand(100);
+		}
+		if (rand() % 2 == 0){
+			fill[i].y = -(float)irand(100);
+		}
+		else
+		{
+			fill[i].y = (float)irand(100);
+		}
+		switch (irand(4)) {
+		case 1:
+			fill[i].z = (float)0;
+			break;
+		case 2:
+			fill[i].z = -(float)30;
+			break;
+		case 3:
+			fill[i].z = -(float)60;
+			break;
+		case 4:
+			fill[i].z = -(float)80;
+			break;
+		}
+	}
     fill[highlighta].x = -50;
     fill[highlighta].y = -30;
     fill[highlighta].z = 0;
